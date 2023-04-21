@@ -1,0 +1,145 @@
+Configure Router with password
+
+Step 1: Configure password for vty lines
+Execute Command on all routers
+ line vty 0 4
+ #password vtypa55
+ #login
+
+Step 2: Configure secret on router
+Execute Command on all routers
+enable secret enpa55
+
+Step 3: Configure OSPF on routers
+R1#
+router ospf 1
+network 192.168.1.0 0.0.0.255 area 0
+network 10.1.1.0 0.0.0.3 area 0
+router ospf 1
+network 10.1.1.0 0.0.0.3 area 0
+network 10.2.2.0 0.0.0.3 area 0
+router ospf 1
+network 192.168.3.0 0.0.0.255 area 0
+network 10.2.2.0 0.0.0.3 area 0
+
+Step 4: Test Connectivity
+PC-A > ping 192.168.3.5
+Successful
+PC-B > ping 192.168.3.5
+Successful
+
+Part 1: Configure OSPF MD5 Authentication
+Step 1: Test connectivity. All devices should be able to ping all other IP addresses.
+Step 2: Configure OSPF MD5 authentication for all the routers in area 0.
+Execute Command on all routers
+ router ospf 1
+ area 0 authentication message-digest
+
+
+Step 3: Configure the MD5 key for all the routers in area 0.
+Configure an MD5 key on the serial interfaces on R1, R2 and R3. Use the password MD5pa55 for key 1.
+R1# 
+interface s0/1/0
+ip ospf message-digest-key 1 md5 MD5pa55
+
+R2#
+ interface s0/1/0
+ ip ospf message-digest-key 1 md5 MD5pa55
+ interface s0/1/1
+ ip ospf message-digest-key 1 md5 MD5pa55
+R3#
+ interface s0/1/0
+ ip ospf message-digest-key 1 md5 MD5pa55
+
+Step 4: Verify configurations.
+a. Verify the MD5 authentication configurations using the commands show ip ospf interface.
+b. Verify end-to-end connectivity.
+Output should be shown in all the routers :
+R# show ip ospf interface
+Message-digest Authentication Enabled
+Youngest key ID is 1
+
+
+Part 2: Configure NTP
+Step 1: Enable NTP authentication on PC-A.
+a. On PC-A, click NTP under the Services tab to verify NTP service is enabled.
+b. To configure NTP authentication, click Enable under Authentication. Use key 1 and password NTPpa55
+for authentication.
+
+
+Step 2: Configure R1, R2, and R3 as NTP clients.
+Execute Command on all routers
+ ntp server 192.168.1.5
+
+Verify client configuration using the command show ntp status.
+
+Step 3: Configure routers to update hardware clock. Configure R1, R2, and R3 to periodically update the hardware clock with the time learned from NTP.
+Execute Command on all routers
+ ntp update-calendar
+ show clock
+
+Step 4: Configure NTP authentication on the routers. Configure NTP authentication on R1, R2, and R3 using key 1 and password NTPpa55.
+Execute Command on all routers
+ ntp authenticate
+ ntp trusted-key 1
+ ntp authentication-key 1 md5 NTPpa55
+
+
+Step 5: Configure routers to timestamp log messages.
+Execute commands on all routers
+ service timestamps log datetime msec
+
+
+Part 3: Configure Routers to Log Messages to the Syslog Server
+Step 1: Configure the routers to identify the remote host (Syslog Server) that will receive logging messages.
+Execute commands on all routers
+ logging host 192.168.1.6
+
+The router console will display a message that logging has started.
+
+Step 2: Verify logging configuration.
+ show logging
+
+
+
+Step 3: Examine logs of the Syslog Server
+
+Part 4: Configure R3 to Support SSH Connections
+
+Step 1: Configure a domain name of ccnasecurity.com on R3.
+R3(config)# ip domain-name ccnasecurity.com
+Step 2: Configure users for login to the SSH server on R3.
+R3(config)# username SSHadmin privilege 15 secret sshpa55
+R3(config)#
+ line vty 0 4
+ login local
+ transport input ssh
+ crypto key generate rsa
+How many bits in the modulus [512]: 1024
+
+Step 6: Verify the SSH configuration.
+R3#
+ show ip ssh
+
+Step 7: Configure SSH timeouts and authentication parameters.
+R3#
+ ip ssh time-out 90
+ ip ssh authentication-retries 2
+ ip ssh version 2
+
+Verify the SSH configuration
+R3#
+ show ip ssh
+
+Step 8: Attempt to connect to R3 via Telnet from PC-C.
+PC> telnet 192.168.3.1
+
+Step 9: Connect to R3 using SSH on PC-C.
+PC> ssh –l SSHadmin 192.168.3.1
+Password: sshpa55
+
+Step 10: Connect to R3 using SSH on R2.
+R2# ssh –v 2 –l SSHadmin 10.2.2.1
+Password: sshpa55
+
+

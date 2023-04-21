@@ -1,0 +1,177 @@
+Configure router
+
+Step 1: Configure secret on router
+Execute command on all routers
+R(config)#
+ enable secret enpa55
+
+Step 2: Configure console password on router
+Execute command on all routers
+R(config)#
+ line console 0
+ password conpa55
+ login
+
+Step 3: Configure SSH login on router
+Execute command on all routers
+R(config)# 
+ip domain-name ccnasecurity.com
+ username admin secret adminpa55
+line vty 0 4
+ login local
+ crypto key generate rsa
+How many bits in the modulus [512]: 1024
+
+Step 4: Configure OSPF on routers
+R1(config)#
+ router ospf 1
+ network 192.168.1.0 0.0.0.255 area 0
+ network 10.1.1.0 0.0.0.3 area 0
+
+R2(config)#
+ router ospf 1
+ network 192.168.2.0 0.0.0.255 area 0
+ network 10.2.2.0 0.0.0.3 area 0
+ network 10.1.1.0 0.0.0.3 area
+
+R3(config)#
+ router ospf 1
+ network 192.168.3.0 0.0.0.255 area 0
+ network 10.2.2.0 0.0.0.3 area 0
+
+Part 2: Configure IPsec Parameters on R1
+
+Step 1: From PC-A, verify connectivity to PC-C and PC-B.
+PCA> ping 192.168.3.3
+(Successful)
+
+PCA> ping 192.168.2.3
+(Successful)
+
+PCB> ping 192.168.3.3
+(Successful)
+
+Step 2: Check if the Security Technology package is enabled
+R1# show version
+
+Step 3: Enable the Security Technology package.
+R1(config)#
+ license boot module c1900 technology-package securityk9
+
+Step 4: Save the running config and reload the router to enable the security license
+R1#
+ copy run start
+ reload
+
+Step 5: Verify the Security Technology package is enabled
+R1#
+ show version
+
+Step 6: Identify interesting traffic on R1.
+R1(config)# access-list 110 permit ip 192.168.1.0 0.0.0.255 192.168.3.0 0.0.0.255
+
+Step 7: Configure the IKE Phase 1 ISAKMP policy on R1.
+R1(config)#
+ crypto isakmp policy 10
+ encryption aes 256
+ authentication pre-share
+ group 5
+ exit
+ crypto isakmp key vpnpa55 address 10.2.2.2
+
+Step 8: Configure the IKE Phase 2 IPsec policy on R1.
+R1(config)#
+ crypto ipsec transform-set VPN-SET esp-aes esp-sha-hmac
+ crypto map VPN-MAP 10 ipsec-isakmp
+ description VPN connection to R3
+ set peer 10.2.2.2
+ set transform-set VPN-SET
+ match address 110
+ exit
+
+Step 9: Configure the crypto map on the outgoing interface.
+R1(config)#
+ int se0/1/0
+ crypto map VPN-MAP
+
+Part 3: Configure IPsec Parameters on R3
+
+Step 1: Check if the Security Technology package is enabled
+R3#
+ show version
+
+Step 2: Enable the Security Technology package.
+R3(config)#
+ license boot module c1900 technology-package securityk9
+
+Step 3: Save the running config and reload the router to enable the security license
+R3#
+ copy run start
+ reload
+
+Step 4: Verify the Security Technology package is enabled
+R3#
+ show version
+
+Step 5: Configure router R3 to support a site-to-site VPN with R1.
+R3(config)#
+ access-list 110 permit ip 192.168.3.0 0.0.0.255 192.168.1.0 0.0.0.255
+
+Step 6: Configure the IKE Phase 1 ISAKMP properties on R3.
+R3(config)#
+ crypto isakmp policy 10
+ encryption aes 256
+ authentication pre-share
+ group 5
+ exit
+ crypto isakmp key vpnpa55 address 10.1.1.2
+
+Step 7: Configure the IKE Phase 2 IPsec policy on R3.
+R3(config)#
+ crypto ipsec transform-set VPN-SET esp-aes esp-sha-hmac
+ crypto map VPN-MAP 10 ipsec-isakmp
+ description VPN connection to R1
+ set peer 10.1.1.2
+ set transform-set VPN-SET
+ match address 110
+ exit
+
+Step 8: Configure the crypto map on the outgoing interface.
+R3(config)#
+ int se0/1/0
+ crypto map VPN-MAP
+
+Part 4: Verify the IPsec VPN
+
+Step 1: Verify the tunnel prior to interesting traffic.
+R1#
+ show crypto ipsec sa
+
+Step 2: Create interesting traffic.
+PCC>ping 192.168.1.3
+(Successful)
+
+Step 3: Verify the tunnel after interesting traffic.
+R1#
+ show crypto ipsec sa
+
+Step 4: Create uninteresting traffic
+PCB>ping 192.168.1.3
+(Successful)
+R1#ping 192.168.3.3
+(Successful)
+R3#ping 192.168.1.3
+(Successful)
+
+Step 5: Verify the tunnel.
+R1#
+ show crypto ipsec sa
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,45 @@
+Assiging ipv6 address
+
+R1/2/3#ipv6 unicast-routing
+ 
+R1(config)#int g0/1(Changes according to interface)
+R1(config-if)# ipv6 enable 
+R1(config-if)#no shutdown 
+R1(config-if)#ipv6 address 2001:DB8:1:10::1/64 (Changes)
+Go to PC-A IPv6--2001:DB8:1:10::2/64 (Changes)
+IPv6 Gateway   --2001:DB8:1:10::1(address of router)
+
+Configuring static routing
+
+R1(config)#ipv6 route 2001:DB8:1:25::/64 2001:DB8:1:20::2
+R1(config)#ipv6 route 2001:DB8:1:30::/64 2001:DB8:1:20::2
+	
+R2(config)#ipv6 route 2001:DB8:1:10::/64 2001:DB8:1:20::1
+R2(config)#ipv6 route 2001:DB8:1:11::/64 2001:DB8:1:20::1
+R2(config)#ipv6 route 2001:DB8:1:30::/64 2001:DB8:1:25::1
+
+R3(config)#ipv6 route 2001:DB8:1:20::/64 2001:DB8:1:25::2
+R3(config)#ipv6 route 2001:DB8:1:10::/64 2001:DB8:1:25::2
+R3(config)#ipv6 route 2001:DB8:1:11::/64 2001:DB8:1:25::2
+check connectivity
+
+
+Configure an ACL that will block HTTP and HTTPS access
+R1(config)#ipv6 access-list BLOCK_HTTP
+R1(config-ipv6-acl)#deny tcp any host 2001:DB8:1:30::30 eq www
+R1(config-ipv6-acl)#deny tcp any host 2001:DB8:1:30::30 eq 443
+R1(config-ipv6-acl)#permit ipv6 any any
+R1(config-ipv6-acl)#exit
+R1(config)#int g0/0
+R1(config-if)#ipv6 traffic-filter BLOCK_HTTP in
+pc2--http://2001:DB8:1:30::30
+
+Create an access list to block ICMP.
+R3(config)#ipv6 access-list BLOCK_ICMP
+R3(config-ipv6-acl)#deny icmp any any
+R3(config-ipv6-acl)#permit ipv6 any any
+R3(config-ipv6-acl)#exit
+R3(config)#int gig0/0
+R3(config-if)#ipv6 traffic-filter BLOCK_ICMP out
+pc1---http://2001:DB8:1:30::30
+pc1---https://2001:DB8:1:30::30
